@@ -1,7 +1,7 @@
 const days = ['月', '火', '水', '木', '金'];
-let myData = JSON.parse(localStorage.getItem('studySyncPro') || '{"slots":[], "tasks":"", "loc":"図書館"}');
+let myData = JSON.parse(localStorage.getItem('studySyncPro') || '{"slots":[], "tasks":"", "loc":"図書館 📚"}');
 
-// 1. 初期化: 空きコマグリッドの作成
+// --- グリッドとデータの初期化 ---
 const grid = document.getElementById('timetable-grid');
 for (let i = 0; i < 25; i++) {
     const slot = document.createElement('div');
@@ -15,11 +15,9 @@ for (let i = 0; i < 25; i++) {
     grid.appendChild(slot);
 }
 
-// データの復元
 document.getElementById('task-input').value = myData.tasks;
 document.getElementById('location-input').value = myData.loc;
 
-// 入力イベントの登録
 document.querySelectorAll('input, select').forEach(el => {
     el.oninput = save;
 });
@@ -33,46 +31,39 @@ function save() {
     localStorage.setItem('studySyncPro', JSON.stringify(myData));
 }
 
-// QR生成ボタン
+// --- 画面切り替えロジック ---
+function toggleScreen(id) {
+    ['setup-screen', 'qr-screen', 'match-screen'].forEach(s => {
+        document.getElementById(s).classList.add('hidden');
+    });
+    document.getElementById(id).classList.remove('hidden');
+}
+
+// --- QRコード表示 ---
 document.getElementById('generate-btn').onclick = () => {
     const dataStr = encodeURIComponent(JSON.stringify(myData));
     const url = `${window.location.origin}${window.location.pathname}?data=${dataStr}`;
-    
     const qrContainer = document.getElementById("qrcode");
     qrContainer.innerHTML = ""; 
     new QRCode(qrContainer, { text: url, width: 220, height: 220 });
-    
     toggleScreen('qr-screen');
 };
 
-// URLパラメータによるマッチング処理
-const params = new URLSearchParams(window.location.search);
-if (params.has('data')) {
-    try {
-        const friendData = JSON.parse(decodeURIComponent(params.get('data')));
-        showResults(friendData);
-    } catch (e) {
-        console.error("データ解析エラー", e);
-    }
-}
-
+// --- マッチング結果表示 ---
 function showResults(friend) {
     toggleScreen('match-screen');
-    document.getElementById('res-loc').textContent = friend.loc + "にいるよ！";
+    document.getElementById('res-loc').textContent = friend.loc;
     
     const common = friend.slots.filter(s => myData.slots.includes(s));
     document.getElementById('res-slots').innerHTML = common.length > 0 
         ? common.map(id => `【${days[id % 5]}${Math.floor(id / 5) + 1}】`).join(' ') 
-        : "重なる時間がないみたい...";
+        : "重なる時間がありません😢";
 
     const myT = myData.tasks.split(',').map(t => t.trim().toLowerCase());
-    const frT = friend.tasks.split(',').map(t => t.trim());
-    
-    const taskHTML = frT.map(t => {
+    const taskHTML = friend.tasks.split(',').map(t => t.trim()).filter(t => t).map(t => {
         const isUrgent = t.includes('!');
         const cleanT = t.replace('!', '');
         const isCommon = myT.includes(cleanT.toLowerCase());
-        
         return `
         <div class="task-item ${isUrgent ? 'urgent' : ''}">
             <span>${isCommon ? '🤝' : '📄'} ${cleanT} ${isUrgent ? '⚠️' : ''}</span>
@@ -80,26 +71,69 @@ function showResults(friend) {
         </div>`;
     }).join('');
     
-    document.getElementById('res-tasks').innerHTML = taskHTML || "課題はないようです。";
+    document.getElementById('res-tasks').innerHTML = taskHTML || "課題なし";
 }
 
-// 完了ボタン（紙吹雪）
 function finishTask(btn) {
-    confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#6c5ce7', '#a29bfe', '#ff7675']
-    });
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     const parent = btn.parentElement;
     parent.style.opacity = "0.3";
     parent.style.textDecoration = "line-through";
     btn.remove();
 }
 
-function toggleScreen(id) {
-    ['setup-screen', 'qr-screen', 'match-screen'].forEach(s => {
-        document.getElementById(s).classList.add('hidden');
-    });
-    document.getElementById(id).classList.remove('hidden');
+// --- カメラ/スキャン機能 ---
+const video = document.getElementById("video");
+const videoContainer = document.getElementById("video-container");
+let scanning = false;
+
+document.getElementById("scan-start-btn").onclick = () => {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
+        scanning = true;
+        video.srcObject = stream;
+        video.play();
+        videoContainer.style.display = "block";
+        requestAnimationFrame(tick);
+    }).catch(err => alert("カメラの起動に失敗しました。HTTPS環境か確認してください。"));
+};
+
+document.getElementById("scan-cancel-btn").onclick = stopScan;
+
+function stopScan() {
+    scanning = false;
+    if (video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+    }
+    videoContainer.style.display = "none";
+}
+
+function tick() {
+    if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
+        const canvas = document.createElement("canvas");
+        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        
+        if (code) {
+            try {
+                const url = new URL(code.data);
+                const data = url.searchParams.get("data");
+                if (data) {
+                    stopScan();
+                    showResults(JSON.parse(decodeURIComponent(data)));
+                    return;
+                }
+            } catch (e) {}
+        }
+    }
+    if (scanning) requestAnimationFrame(tick);
+}
+
+// URLパラメータからの読み込み
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has('data')) {
+    showResults(JSON.parse(decodeURIComponent(urlParams.get('data'))));
 }
