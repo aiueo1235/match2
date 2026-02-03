@@ -1,15 +1,66 @@
-<div id="setup-screen" class="card">
-    <button class="btn-primary" id="generate-btn">共有用QRを表示</button>
-    <button class="btn-secondary" id="scan-start-btn">友達のQRをスキャン 📷</button>
-</div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StudySync Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+</head>
+<body>
 
-<div id="video-container" class="hidden">
-    <video id="video" autoplay playsinline></video>
-    <div id="video-overlay">
-        <div class="scanner-frame"></div>
-        <button id="scan-cancel-btn">キャンセル</button>
+    <header>
+        <h1>StudySync Pro</h1>
+        <p class="sub-text">空きコマ・課題・場所を瞬間マッチング</p>
+    </header>
+
+    <div id="setup-screen" class="card">
+        <h3>📍 今の場所</h3>
+        <select id="location-input">
+            <option value="図書館 📚">図書館 📚</option>
+            <option value="学食 🍱">学食 🍱</option>
+            <option value="ラウンジ ☕">ラウンジ ☕</option>
+            <option value="空き教室 🏫">空き教室 🏫</option>
+            <option value="外のベンチ 🌳">外のベンチ 🌳</option>
+        </select>
+
+        <h3>📅 空きコマを選択</h3>
+        <div class="grid" id="timetable-grid"></div>
+
+        <h3>📝 課題 (「!」で緊急)</h3>
+        <input type="text" id="task-input" placeholder="例: レポート!, 数学, 英語!">
+        
+        <button class="btn-primary" id="generate-btn">共有用QRを表示</button>
+        <button class="btn-secondary" id="scan-start-btn">友達のQRをスキャン 📷</button>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-<script src="script.js"></script>
+    <div id="qr-screen" class="card hidden">
+        <h3 style="text-align:center;">スキャンして合流！</h3>
+        <div id="qrcode"></div>
+        <button class="btn-secondary" onclick="toggleScreen('setup-screen')">修正する</button>
+    </div>
+
+    <div id="match-screen" class="card hidden">
+        <div class="match-banner">🤝 Study Match!</div>
+        <h3>📍 相手の場所</h3>
+        <div id="res-loc" class="res-box main-loc-text"></div>
+        <h3>📅 被っている時間</h3>
+        <div id="res-slots" class="res-box"></div>
+        <h3>🔥 一緒にやる課題</h3>
+        <div id="res-tasks" class="res-box"></div>
+        <button class="btn-secondary" onclick="window.location.href=window.location.pathname">自分の画面に戻る</button>
+    </div>
+
+    <div id="video-container">
+        <video id="video" autoplay playsinline></video>
+        <div id="video-overlay">
+            <div class="scanner-frame"></div>
+            <button id="scan-cancel-btn">キャンセル</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
