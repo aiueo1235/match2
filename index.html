@@ -38,7 +38,7 @@
 
     <div id="qr-screen" class="card hidden">
         <h3 style="text-align:center;">スキャンして合流！</h3>
-        <div id="qrcode"></div>
+        <div id="qrcode-container"></div>
         <button class="btn-secondary" onclick="toggleScreen('setup-screen')">修正する</button>
     </div>
 
@@ -50,7 +50,7 @@
         <div id="res-slots" class="res-box"></div>
         <h3>🔥 一緒にやる課題</h3>
         <div id="res-tasks" class="res-box"></div>
-        <button class="btn-secondary" onclick="window.location.href=window.location.pathname">自分の画面に戻る</button>
+        <button class="btn-secondary" onclick="window.location.href=window.location.href.split('?')[0]">自分の画面に戻る</button>
     </div>
 
     <div id="video-container">
